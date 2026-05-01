@@ -1,0 +1,21 @@
+version: 1
+
+setup:
+  - name: Install .NET SDK
+    run: |
+      # .NET SDK is pre-installed on GitHub-hosted runners
+      # Ensure the latest .NET 9 SDK is available
+      dotnet --version
+      dotnet --list-sdks
+
+  - name: Install global .NET tools
+    run: |
+      dotnet tool install -g dotnet-ef
+      dotnet tool install -g dotnet-outdated-tool
+      dotnet tool install -g dotnet-reportgenerator-globaltool
+      dotnet tool install -g csharpier
+
+  - name: Verify tools
+    run: |
+      dotnet ef --version
+      dotnet outdated --version

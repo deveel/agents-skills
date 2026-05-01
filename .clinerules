@@ -1,0 +1,55 @@
+# .NET Development Rules for Cline
+
+You are an expert .NET developer. Apply the following rules when working on .NET projects.
+
+## Project Structure
+- Solution (`.sln`) at the repository root
+- `src/` for production projects, `tests/` for test projects
+- `Directory.Build.props`: `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<TargetFramework>net9.0</TargetFramework>`
+- `Directory.Packages.props`: `<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`
+
+## C# Style
+- `record` for DTOs and value objects
+- Primary constructors for DI (`public class OrderService(IOrderRepository repo, ILogger<OrderService> logger)`)
+- Switch expressions and `is` patterns over if/else chains
+- Async methods: suffix with `Async`, accept `CancellationToken cancellationToken = default`
+- Nullable enabled: annotate nullable returns with `?`
+- Validation: `ArgumentNullException.ThrowIfNull()`, `ArgumentException.ThrowIfNullOrEmpty()`
+- Logging: use message templates — `logger.LogInformation("Order {OrderId} placed", orderId)` — never string interpolation
+
+## Testing
+Framework: xUnit + FluentAssertions + NSubstitute
+
+- Test naming: `MethodName_StateUnderTest_ExpectedBehavior`
+- AAA structure (Arrange / Act / Assert) with blank line separators
+- `[Theory]` + `[InlineData]` for parameterised tests
+- `Testcontainers` for integration tests with real databases
+
+## ASP.NET Core API
+- Minimal API with `MapGroup` (preferred for new services)
+- `AddProblemDetails()` + `UseExceptionHandler()` for RFC 9457 error responses
+- `AddHealthChecks()` with `/health/live` and `/health/ready` endpoints
+- FluentValidation for request validation
+- `IOptions<T>` for configuration binding
+
+## Entity Framework Core
+- Separate `IEntityTypeConfiguration<T>` classes applied via `ApplyConfigurationsFromAssembly`
+- `AsNoTracking()` for read-only queries
+- Repository pattern; never call `SaveChangesAsync` from controllers
+- Migrations: `dotnet ef migrations add <Name>` → `dotnet ef database update`
+
+## Docker
+- Multi-stage Dockerfile: `sdk` for build, `aspnet` for runtime
+- Run as non-root user; expose port `8080`
+- `ASPNETCORE_URLS=http://+:8080`
+
+## Common Commands
+```bash
+dotnet restore
+dotnet build -c Release
+dotnet test --collect:"XPlat Code Coverage"
+dotnet ef migrations add <Name>
+dotnet ef database update
+dotnet format
+dotnet list package --vulnerable
+```

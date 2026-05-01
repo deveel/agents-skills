@@ -1,0 +1,36 @@
+---
+description: Rules for ASP.NET Core API development
+globs: ["**/Controllers/**/*.cs", "**/Endpoints/**/*.cs", "**/Program.cs", "**/Startup.cs"]
+alwaysApply: false
+---
+
+# ASP.NET Core API Rules
+
+## Minimal API (preferred for new services)
+- Use `MapGroup` to organise related endpoints
+- Use `WithTags`, `WithOpenApi`, `Produces<T>`, and `ProducesValidationProblem` for metadata
+- Return `IResult` using `Results.Ok()`, `Results.Created()`, `Results.NotFound()`, etc.
+- Extract endpoint handlers into private static methods or separate handler classes
+
+## Controller-based API
+- Decorate with `[ApiController]` and `[Route("api/[controller]")]`
+- Use `[ProducesResponseType<T>(StatusCode)]` to document all response types
+- Inject services via constructor, not `[FromServices]`
+- Return `IActionResult` or `ActionResult<T>`
+
+## Error Handling
+- Register `AddProblemDetails()` and `UseExceptionHandler()` in `Program.cs`
+- Implement `IExceptionHandler` for domain-specific exceptions
+- Always return RFC 9457 Problem Details for error responses
+
+## Validation
+- Use **FluentValidation** for request model validation
+- Register with `AddValidatorsFromAssemblyContaining<Program>()` and `AddFluentValidationAutoValidation()`
+
+## Configuration
+- Use `IOptions<T>` pattern with `Configure<T>(config.GetSection("..."))` for typed settings
+- Never read `IConfiguration` directly in controllers or services
+
+## Health Checks
+- Register `/health/live` (liveness) and `/health/ready` (readiness) endpoints
+- Add `AddDbContextCheck<AppDbContext>()` for database connectivity check

@@ -1,0 +1,56 @@
+---
+description: Testing rules for .NET test projects
+globs: ["**/*.Tests/**/*.cs", "**/*Tests.cs", "**/*Tests/**/*.cs"]
+alwaysApply: false
+---
+
+# .NET Testing Rules
+
+## Frameworks
+- **xUnit** for test discovery and execution
+- **FluentAssertions** for readable assertions (`result.Should().Be(expected)`)
+- **NSubstitute** for mocking (`Substitute.For<IMyService>()`)
+- **Bogus** for generating fake test data
+- **Testcontainers** for integration tests with real infrastructure (databases, queues)
+
+## Test Naming
+Follow `MethodName_StateUnderTest_ExpectedBehavior`:
+```csharp
+public async Task PlaceOrder_WhenItemIsAvailable_ReturnsConfirmedOrder()
+```
+
+## Test Structure (AAA)
+```csharp
+[Fact]
+public async Task Example_Test()
+{
+    // Arrange
+    var dependency = Substitute.For<IDependency>();
+    var sut = new SystemUnderTest(dependency);
+
+    // Act
+    var result = await sut.DoSomethingAsync();
+
+    // Assert
+    result.Should().NotBeNull();
+}
+```
+
+## Parameterised Tests
+Use `[Theory]` with `[InlineData]` or `[MemberData]`:
+```csharp
+[Theory]
+[InlineData(0)]
+[InlineData(-1)]
+public async Task PlaceOrder_WhenQuantityIsInvalid_ThrowsArgumentException(int quantity)
+```
+
+## Integration Tests
+- Use `WebApplicationFactory<Program>` for API integration tests
+- Use `Testcontainers` for real database testing
+- Implement `IAsyncLifetime` for async setup and teardown
+
+## Assertions
+- Prefer FluentAssertions over Assert: `result.Should().Be(42)` not `Assert.Equal(42, result)`
+- Use `await act.Should().ThrowAsync<TException>()` for exception assertions
+- Use `.BeEquivalentTo()` for object graph comparisons

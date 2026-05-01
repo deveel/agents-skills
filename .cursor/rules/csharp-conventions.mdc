@@ -1,0 +1,45 @@
+---
+description: C# and .NET code conventions for all .cs files
+globs: ["**/*.cs"]
+alwaysApply: true
+---
+
+# C# Coding Conventions
+
+## Naming
+- Use PascalCase for types, methods, properties, and constants
+- Use `_camelCase` for private fields
+- Use camelCase for parameters and local variables
+- Prefix interfaces with `I` (e.g., `IOrderService`)
+- Suffix async methods with `Async`
+
+## Nullable Reference Types
+- Always enable `<Nullable>enable</Nullable>` in project files
+- Annotate nullable return types with `?`
+- Use `ArgumentNullException.ThrowIfNull()` for null checks at method entry
+
+## Modern C# Patterns
+- Use `record` types for immutable DTOs and value objects
+- Use primary constructors for simple dependency injection
+- Use switch expressions and is-patterns instead of if/else chains
+- Use `var` only when the right-hand side makes the type obvious
+- Never use `.Result` or `.Wait()` — always `await`
+
+## Async/Await
+- All async methods must accept `CancellationToken cancellationToken = default`
+- Forward the cancellation token to all async calls
+- Use `ConfigureAwait(false)` in library code
+
+## Error Handling
+- Use guard clauses at the top of methods
+- Create domain-specific exception types for business errors
+- Use `ArgumentNullException.ThrowIfNull()` and `ArgumentException.ThrowIfNullOrEmpty()`
+
+## Documentation
+- Add XML doc comments to all public types, methods, and properties
+- Use `<paramref name="..."/>`, `<see cref="..."/>`, and `<exception cref="..."/>` tags
+
+## Logging
+- Use `ILogger<T>` injected via constructor
+- Use message templates (not string interpolation): `logger.LogInformation("Order {OrderId} placed", orderId)`
+- Define log messages with `[LoggerMessage]` partial methods for hot paths

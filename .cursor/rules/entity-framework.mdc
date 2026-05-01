@@ -1,0 +1,45 @@
+---
+description: Rules for Entity Framework Core data access
+globs: ["**/*DbContext.cs", "**/Configurations/**/*.cs", "**/Repositories/**/*.cs", "**/Migrations/**/*.cs"]
+alwaysApply: false
+---
+
+# Entity Framework Core Rules
+
+## DbContext
+- Use primary constructor: `public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)`
+- Apply all entity configurations via `modelBuilder.ApplyConfigurationsFromAssembly(...)`
+- Use `DbSet<T>` properties with expression body: `public DbSet<Order> Orders => Set<Order>();`
+
+## Entity Configuration
+- Create a separate `IEntityTypeConfiguration<T>` class per entity
+- Use Fluent API (avoid data annotations on domain entities)
+- Map columns explicitly: `.HasColumnName()`, `.IsRequired()`, `.HasMaxLength()`
+- Use `.HasConversion<string>()` for enum columns stored as text
+
+## Querying
+- Use `AsNoTracking()` for all read-only queries
+- Use `AsSplitQuery()` when including multiple collection navigations
+- Project to DTOs with `.Select()` to avoid over-fetching
+- Use `FindAsync` for primary key lookups; use `FirstOrDefaultAsync` for others
+
+## Migrations
+```bash
+# Add migration
+dotnet ef migrations add <Name> --project src/MyApp.Infrastructure --startup-project src/MyApp.Api
+
+# Apply migration
+dotnet ef database update --project src/MyApp.Infrastructure --startup-project src/MyApp.Api
+
+# Generate SQL script
+dotnet ef migrations script --idempotent -o migrations.sql
+```
+
+## Repository Pattern
+- Define repository interfaces in the Domain/Application layer
+- Implement them in the Infrastructure layer using EF Core
+- Never call `SaveChangesAsync` from a controller; call it from a repository or Unit of Work
+
+## Testing
+- Use Testcontainers with a real database provider for integration tests
+- Apply migrations in test setup with `await context.Database.MigrateAsync()`

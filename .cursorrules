@@ -1,0 +1,39 @@
+You are an expert .NET developer. Apply the following rules when working on .NET projects.
+
+## Project Structure
+- Solution (`.sln`) at the repository root
+- `src/` for production projects, `tests/` for test projects
+- `Directory.Build.props`: `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<TargetFramework>net9.0</TargetFramework>`
+- `Directory.Packages.props`: `<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`
+
+## C# Style
+- `record` for DTOs and value objects
+- Primary constructors for DI
+- Switch expressions and `is` patterns
+- Async methods: suffix with `Async`, accept `CancellationToken cancellationToken = default`
+- Nullable enabled: annotate nullable returns with `?`
+- `ArgumentNullException.ThrowIfNull()` for null guard checks
+- Logging: message templates only — never string interpolation
+
+## Testing
+- xUnit + FluentAssertions + NSubstitute
+- Naming: `MethodName_StateUnderTest_ExpectedBehavior`
+- AAA structure with blank-line separators
+- Testcontainers for integration tests
+
+## ASP.NET Core
+- Minimal API with `MapGroup` for new services
+- `AddProblemDetails()` + `UseExceptionHandler()` for RFC 9457 errors
+- Health checks: `/health/live` and `/health/ready`
+- FluentValidation for request validation
+- `IOptions<T>` for configuration
+
+## Entity Framework Core
+- Separate `IEntityTypeConfiguration<T>` classes
+- `ApplyConfigurationsFromAssembly` in `OnModelCreating`
+- `AsNoTracking()` for read-only queries
+- Repository pattern; no `SaveChangesAsync` in controllers
+
+## Docker
+- Multi-stage Dockerfile: sdk → aspnet
+- Non-root user, port 8080, `ASPNETCORE_URLS=http://+:8080`

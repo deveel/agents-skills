@@ -1,0 +1,38 @@
+---
+description: Rules for .NET project files, solution structure, and build configuration
+globs: ["**/*.csproj", "**/*.sln", "**/Directory.Build.props", "**/Directory.Packages.props"]
+alwaysApply: false
+---
+
+# .NET Project and Build Rules
+
+## Solution Structure
+- Solution file (`.sln`) at the repository root
+- Production projects in `src/`, test projects in `tests/`
+- Use `Directory.Build.props` at the solution root with shared properties
+- Use `Directory.Packages.props` with `<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`
+
+## Required MSBuild Properties (in Directory.Build.props)
+```xml
+<PropertyGroup>
+  <TargetFramework>net9.0</TargetFramework>
+  <Nullable>enable</Nullable>
+  <ImplicitUsings>enable</ImplicitUsings>
+  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <LangVersion>latest</LangVersion>
+</PropertyGroup>
+```
+
+## NuGet Package Management
+- When central package management is enabled, omit `Version` from `<PackageReference>` in project files
+- Add new packages only after checking for known vulnerabilities
+- Prefer `Microsoft.Extensions.*` abstractions for cross-cutting concerns
+
+## Build Commands
+```bash
+dotnet restore         # Restore packages
+dotnet build           # Build (debug)
+dotnet build -c Release  # Build release
+dotnet test            # Run tests
+dotnet format          # Auto-fix formatting
+```
