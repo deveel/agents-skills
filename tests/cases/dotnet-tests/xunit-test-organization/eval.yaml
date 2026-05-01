@@ -1,0 +1,200 @@
+scenarios:
+  - name: "Rename generic test methods and consolidate duplication into a Theory"
+    prompt: |
+      This xUnit test class has two duplicated [Fact] methods with placeholder names
+      that verify the same behavior using different inputs. Please refactor it into a
+      single parameterized test using [Theory] with [InlineData], and rename the test
+      method so the behavior and condition are clear.
+    setup:
+      files:
+        - path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+          content: |
+            using Xunit;
+
+            namespace Ordering.XUnit.Unit;
+
+            public class DiscountCalculatorTests
+            {
+                [Fact]
+                public void test1()
+                {
+                    var sut = new Ordering.DiscountCalculator();
+                    var result = sut.GetDiscount(100, 1);
+                    Assert.Equal(5, result);
+                }
+
+                [Fact]
+                public void test2()
+                {
+                    var sut = new Ordering.DiscountCalculator();
+                    var result = sut.GetDiscount(100, 2);
+                    Assert.Equal(10, result);
+                }
+            }
+        - path: "src/Ordering/DiscountCalculator.cs"
+          content: |
+            namespace Ordering;
+
+            public class DiscountCalculator
+            {
+                public decimal GetDiscount(decimal subtotal, int tier)
+                {
+                    if (tier <= 1) return subtotal * 0.05m;
+                    return subtotal * 0.10m;
+                }
+            }
+    assertions:
+      - type: "file_not_contains"
+        path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+        value: "public void test1"
+      - type: "file_not_contains"
+        path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+        value: "public void test2"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+        value: "Should_"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+        value: "[Theory]"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/DiscountCalculatorTests.cs"
+        value: "[InlineData"
+      - type: "exit_success"
+    rubric:
+      - "Renamed test methods from generic placeholder names to names that describe the expected outcome and the scenario under which it occurs"
+      - "Consolidated the two duplicate test methods into a single parameterized test that exercises both input variations without repeating the test body"
+      - "The refactored test clearly communicates what behavior is being verified without requiring the reader to inspect the implementation"
+    timeout: 120
+
+  - name: "Add AAA structure and Trait decoration to a bare test method"
+    prompt: |
+      This test method has no structure comments and no categorization. Please
+      reorganize it so the test phases are clearly marked and the test can be
+      selectively included or excluded in CI runs.
+    setup:
+      files:
+        - path: "tests/Ordering.XUnit/Unit/PricingServiceTests.cs"
+          content: |
+            using Xunit;
+
+            namespace Ordering.XUnit.Unit;
+
+            public class PricingServiceTests
+            {
+                [Fact]
+                public void AppliesDiscountForPremiumTier()
+                {
+                    var service = new Ordering.PricingService();
+                    var result = service.CalculatePrice(200m, isPremium: true);
+                    Assert.Equal(170m, result);
+                }
+            }
+        - path: "src/Ordering/PricingService.cs"
+          content: |
+            namespace Ordering;
+
+            public class PricingService
+            {
+                public decimal CalculatePrice(decimal amount, bool isPremium)
+                    => isPremium ? amount * 0.85m : amount;
+            }
+    assertions:
+      - type: "file_not_contains"
+        path: "tests/Ordering.XUnit/Unit/PricingServiceTests.cs"
+        value: "public void AppliesDiscountForPremiumTier()"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/PricingServiceTests.cs"
+        value: "Should_"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/PricingServiceTests.cs"
+        value: "[Trait("
+      - type: "exit_success"
+    rubric:
+      - "Reorganized the test so setup, execution, and verification are clearly separated and easy to scan"
+      - "Added test metadata that supports selective execution in CI (for example category or feature grouping)"
+      - "Replaced the generic/ambiguous test method name with one that clearly communicates behavior and condition"
+    timeout: 120
+
+  - name: "Extract a Bogus-based fixture to replace hardcoded test data"
+    prompt: |
+      This test embeds specific customer names and email addresses directly in the
+      test body. Please refactor it so the test data comes from a shared, randomized
+      source and the test method focuses only on verifying behavior.
+    setup:
+      files:
+        - path: "tests/Ordering.XUnit/Unit/OrderServiceTests.cs"
+          content: |
+            using Xunit;
+
+            namespace Ordering.XUnit.Unit;
+
+            public class OrderServiceTests
+            {
+                [Fact]
+                public void Should_CreateOrder_When_InputIsValid()
+                {
+                    var service = new Ordering.OrderService();
+                    var order = new Ordering.Order
+                    {
+                        CustomerName = "John Smith",
+                        Email = "john@example.com",
+                        Quantity = 3
+                    };
+
+                    var created = service.Create(order);
+
+                    Assert.NotNull(created);
+                    Assert.Equal("john@example.com", created.Email);
+                }
+            }
+        - path: "src/Ordering/OrderService.cs"
+          content: |
+            namespace Ordering;
+
+            public class OrderService
+            {
+                public Order Create(Order order) => order;
+            }
+
+            public class Order
+            {
+                public string CustomerName { get; set; } = string.Empty;
+                public string Email { get; set; } = string.Empty;
+                public int Quantity { get; set; }
+            }
+    assertions:
+      - type: "file_exists"
+        path: "**/OrderServiceFixture.cs"
+      - type: "file_contains"
+        path: "tests/Ordering.XUnit/Unit/OrderServiceTests.cs"
+        value: "IClassFixture"
+      - type: "file_not_contains"
+        path: "tests/Ordering.XUnit/Unit/OrderServiceTests.cs"
+        value: "john@example.com"
+      - type: "file_not_contains"
+        path: "tests/Ordering.XUnit/Unit/OrderServiceTests.cs"
+        value: "John Smith"
+      - type: "exit_success"
+    rubric:
+      - "Centralized reusable test setup and data construction outside the test method body"
+      - "Removed hardcoded personal/literal test values and replaced them with managed or generated inputs"
+      - "Refocused the test on behavior verification rather than inline object construction details"
+      - "Updated assertions so they validate behavior without depending on a removed hardcoded literal"
+    timeout: 300
+
+  - name: "Decline to organize NUnit tests"
+    prompt: |
+      I have a .NET class library with NUnit tests. Can you help me organize the
+      test fixtures and categories so they run correctly in CI?
+    expect_activation: false
+    assertions:
+      - type: "output_matches"
+        pattern: "(NUnit|different framework|xUnit|outside scope|not the right skill|framework mismatch)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized that the request involves NUnit, a different .NET test framework from xUnit"
+      - "Avoided prescribing xUnit-specific conventions as if they were universally applicable to NUnit"
+      - "Clarified the framework mismatch and redirected to framework-appropriate guidance"
+    timeout: 120
+
+

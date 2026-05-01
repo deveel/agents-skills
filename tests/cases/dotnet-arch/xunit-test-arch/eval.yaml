@@ -1,0 +1,184 @@
+scenarios:
+  - name: "Restructure to .XUnit and .Testing with centralized test build settings"
+    prompt: |
+      I have a .NET class library and a test project, but the test layout is messy and
+      package references are duplicated across projects. Please reorganize this into a
+      clean architecture with a dedicated executable xUnit test project and a shared
+      test support library, then centralize common test package references.
+    setup:
+      files:
+        - path: "src/Payments/Payments.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+        - path: "test/Payments.Tests/Payments.Tests.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="xunit.v3" Version="1.1.0" />
+                <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0" />
+                <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.14.2" />
+              </ItemGroup>
+              <ItemGroup>
+                <ProjectReference Include="../../src/Payments/Payments.csproj" />
+              </ItemGroup>
+            </Project>
+    assertions:
+      - type: "file_exists"
+        path: "test/Directory.Build.props"
+      - type: "file_exists"
+        path: "**/*.XUnit.csproj"
+      - type: "file_exists"
+        path: "**/*.Testing.csproj"
+      - type: "file_contains"
+        path: "**/*.Testing.csproj"
+        value: "<IsTestProject>false</IsTestProject>"
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "xunit.v3"
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "Microsoft.Testing.Extensions.CodeCoverage"
+      - type: "exit_success"
+    rubric:
+      - "Created a clear test architecture with separate executable test and shared support projects"
+      - "Applied framework-specific naming that distinguishes xUnit test execution from shared test utilities"
+      - "Centralized common test dependencies in a shared test-scope build configuration"
+      - "Configured shared support libraries to avoid being treated as executable test projects"
+    timeout: 300
+
+  - name: "Split package and runner configuration by target framework in Directory.Build.props"
+    prompt: |
+      This test project multi-targets net6.0 and net8.0, but the package setup is mixed.
+      Please update the shared test build configuration so net8+ uses the modern xUnit and
+      testing platform setup, while net6/7 uses the compatible v2 and VSTest setup.
+    setup:
+      files:
+        - path: "test/Directory.Build.props"
+          content: |
+            <Project>
+              <PropertyGroup>
+                <IsPackable>false</IsPackable>
+                <IsTestProject>true</IsTestProject>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="xunit" Version="2.9.0" />
+                <PackageReference Include="xunit.v3" Version="1.1.0" />
+                <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+              </ItemGroup>
+            </Project>
+        - path: "test/Inventory.XUnit/Inventory.XUnit.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+              </PropertyGroup>
+            </Project>
+    assertions:
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0')"
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "PackageReference Include=\"xunit.v3\""
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "PackageReference Include=\"xunit\""
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "PackageReference Include=\"Microsoft.NET.Test.Sdk\""
+      - type: "file_contains"
+        path: "test/Directory.Build.props"
+        value: "TestingPlatformDotnetTestSupport"
+      - type: "exit_success"
+    rubric:
+      - "Introduced conditional package selection that aligns test dependencies with each target framework family"
+      - "Avoided mixing incompatible test runner stacks across net6/7 and net8+"
+      - "Configured net8+ test projects to use the modern testing platform properties"
+    timeout: 300
+
+  - name: "Keep support library out of executable test package injection"
+    prompt: |
+      I have a shared test helper project and an executable xUnit test project, but both
+      currently include runner packages and both are treated like test executables.
+      Please update Directory.Build.props and the project files so only the executable
+      xUnit project receives runner packages and the shared helper project is opt-out
+      via IsTestProject.
+    setup:
+      files:
+        - path: "test/Directory.Build.props"
+          content: |
+            <Project>
+              <PropertyGroup>
+                <IsPackable>false</IsPackable>
+                <IsTestProject Condition="'$(IsTestProject)' == ''">true</IsTestProject>
+              </PropertyGroup>
+              <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+                <PackageReference Include="xunit.v3" Version="1.*" />
+                <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
+              </ItemGroup>
+            </Project>
+        - path: "test/Catalog.XUnit/Catalog.XUnit.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="xunit.v3" Version="1.1.0" />
+                <ProjectReference Include="../../src/Catalog/Catalog.csproj" />
+                <ProjectReference Include="../Catalog.Testing/Catalog.Testing.csproj" />
+              </ItemGroup>
+            </Project>
+        - path: "test/Catalog.Testing/Catalog.Testing.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="xunit.v3" Version="1.1.0" />
+                <ProjectReference Include="../../src/Catalog/Catalog.csproj" />
+              </ItemGroup>
+            </Project>
+    assertions:
+      - type: "file_contains"
+        path: "test/Catalog.Testing/Catalog.Testing.csproj"
+        value: "<IsTestProject>false</IsTestProject>"
+      - type: "file_not_contains"
+        path: "test/Catalog.Testing/Catalog.Testing.csproj"
+        value: "PackageReference Include=\"xunit"
+      - type: "file_not_contains"
+        path: "test/Catalog.XUnit/Catalog.XUnit.csproj"
+        value: "PackageReference Include=\"xunit"
+      - type: "file_contains"
+        path: "test/Catalog.XUnit/Catalog.XUnit.csproj"
+        value: "ProjectReference Include=\"../Catalog.Testing/Catalog.Testing.csproj\""
+      - type: "exit_success"
+    rubric:
+      - "Marked shared test support code as non-executable test infrastructure"
+      - "Removed duplicated runner package references from project files where shared props should provide them"
+      - "Preserved linkage between executable tests, shared test support, and the library under test"
+    timeout: 240
+
+  - name: "Decline architecture guidance for non-xUnit framework request"
+    prompt: |
+      My solution uses NUnit. Can I apply these same .XUnit/.Testing naming and xUnit
+      package conventions directly, or should I use a framework-specific setup?
+    expect_activation: false
+    assertions:
+      - type: "output_matches"
+        pattern: "(NUnit|different framework|xUnit|outside scope|framework mismatch|not applicable)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized the framework mismatch and explained why xUnit-specific architecture guidance does not directly apply"
+      - "Avoided presenting xUnit-only package and project conventions as if they were correct for NUnit"
+      - "Redirected toward framework-appropriate architecture guidance"
+    timeout: 90
+

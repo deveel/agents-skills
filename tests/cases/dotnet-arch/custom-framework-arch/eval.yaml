@@ -1,0 +1,117 @@
+scenarios:
+  - name: "Reorganize a monolithic library into a reusable multi-package framework layout"
+    prompt: |
+      I have one big class library and I want to publish a reusable framework to NuGet.
+      Please reorganize this repository into clear package boundaries, using Acme.Core as
+      the main package, and structure it for source, tests, samples, and documentation.
+    setup:
+      files:
+        - path: "src/Acme/Acme.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+        - path: "src/Acme/CacheService.cs"
+          content: |
+            namespace Acme;
+
+            public class CacheService
+            {
+                public string Get(string key) => key;
+            }
+    assertions:
+      - type: "file_exists"
+        path: "src/Acme.Core/Acme.Core.csproj"
+      - type: "file_exists"
+        path: "src/Acme.*/*.csproj"
+      - type: "file_exists"
+        path: "test/Acme.Core.XUnit/Acme.Core.XUnit.csproj"
+      - type: "file_exists"
+        path: "samples/**"
+      - type: "file_exists"
+        path: "docs/**"
+      - type: "file_exists"
+        path: "Directory.Build.props"
+      - type: "file_exists"
+        path: "Directory.Packages.props"
+      - type: "exit_success"
+    rubric:
+      - "Established a package-oriented framework layout that separates source, tests, samples, and documentation"
+      - "Applied a clear main package naming choice consistent with the requested framework naming preference"
+      - "Created a test project structure that mirrors the source package layout"
+      - "Introduced centralized build and package management configuration suitable for multi-library maintenance"
+    timeout: 300
+
+  - name: "Centralize open-source packaging metadata and source-linking conventions"
+    prompt: |
+      Please update this framework so package metadata and publishing settings are
+      centralized for open-source distribution. I want repository metadata, symbols,
+      license, authorship fields, and deterministic build settings handled consistently.
+    setup:
+      files:
+        - path: "src/Acme.Core/Acme.Core.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <PackageId>Acme.Core</PackageId>
+              </PropertyGroup>
+            </Project>
+        - path: "src/Acme.Caching/Acme.Caching.csproj"
+          content: |
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <PackageId>Acme.Caching</PackageId>
+              </PropertyGroup>
+            </Project>
+    assertions:
+      - type: "file_exists"
+        path: "Directory.Build.props"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "PackageLicenseExpression"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "Authors"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "RepositoryUrl"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "PublishRepositoryUrl"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "IncludeSymbols"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "SymbolPackageFormat"
+      - type: "file_contains"
+        path: "Directory.Build.props"
+        value: "ContinuousIntegrationBuild"
+      - type: "file_exists"
+        path: "Directory.Packages.props"
+      - type: "exit_success"
+    rubric:
+      - "Centralized package publishing metadata so multiple packages follow consistent ownership and licensing rules"
+      - "Added repository and symbol publication settings appropriate for open-source package distribution"
+      - "Applied shared build settings that support deterministic and traceable package outputs"
+    timeout: 240
+
+  - name: "Decline architecture guidance for a single non-framework application"
+    prompt: |
+      I only have one internal ASP.NET application and I am not publishing reusable
+      packages. Should I still apply this multi-package framework architecture as-is?
+    expect_activation: false
+    assertions:
+      - type: "output_matches"
+        pattern: "(single application|not.*framework|not.*reusable|outside scope|not applicable|internal app)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized that the request is for a single application rather than a reusable framework"
+      - "Avoided prescribing a full multi-package framework architecture as a default for this case"
+      - "Redirected to a simpler project organization approach that matches the stated goals"
+    timeout: 120
+

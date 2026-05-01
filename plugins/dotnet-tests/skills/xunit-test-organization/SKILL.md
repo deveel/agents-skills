@@ -1,10 +1,10 @@
 ---
-name: xunit-organization
+name: xunit-test-organization
 description: >-
-  Guides the agent in creating, organizing, and maintaining xUnit test projects
-  for .NET class libraries. Use this skill when asked to create a new test
-  project, add or refactor tests, write unit or integration tests, set up
-  fixtures or traits, configure code coverage, or organize test data with Bogus.
+  Guides the agent in writing, naming, and organizing xUnit tests for .NET
+  class libraries. Use this skill when asked to add or refactor tests, write
+  unit or integration tests, set up fixtures or traits, organize test data with
+  Bogus, or apply AAA structure and naming conventions to test methods.
 license: MIT
 metadata:
   author: Antonello Provenzano
@@ -17,243 +17,15 @@ metadata:
 
 # xUnit Test Organization
 
+This skill covers the coding-level conventions for xUnit tests in .NET —
+test method naming, class structure, test data generation with Bogus, fixture
+patterns, trait categorization, and integration test rules. For project layout,
+MSBuild configuration, and package selection see the `xunit-test-arch` skill
+(in the `dotnet-arch` plugin).
+
 ---
 
-## 1. Project Structure
-
-### Naming convention
-
-| Project type | Suffix | Example | `IsTestProject` |
-|---|---|---|---|
-| Executable test project | `.XUnit` | `MyLib.XUnit` | `true` (default) |
-| Shared test support library | `.Testing` | `MyLib.Testing` | `false` |
-| Library under test | _(none)_ | `MyLib` | _(not set)_ |
-
-The `.XUnit` suffix signals the framework in use without locking the name
-permanently — if a different framework is adopted in the future, a new
-`{LibraryName}.NUnit` (or similar) project can coexist alongside it.
-
-Shared test support libraries (fixtures, builders, fakes) that are referenced
-by multiple test projects but do not contain executable tests are named with
-the `.Testing` suffix and have `<IsTestProject>false</IsTestProject>` in their
-`.csproj`. This prevents `Directory.Build.props` from injecting xUnit runner
-packages into them.
-
-### Folder layout
-
-```
-src/
-  MyLib/
-    MyLib.csproj
-test/
-  Directory.Build.props           ← test-scope build settings
-  coverlet.runsettings            ← test-scope coverage settings
-  MyLib.XUnit/
-    MyLib.XUnit.csproj          ← IsTestProject: true (default)
-    Unit/
-      MyClassTests.cs
-    Integration/
-      MyClassIntegrationTests.cs
-    Fixtures/
-      MyClassFixture.cs
-      MyCollectionFixture.cs
-  MyLib.Testing/
-    MyLib.Testing.csproj        ← IsTestProject: false
-    Builders/
-      OrderBuilder.cs
-    Fakes/
-      FakeOrderRepository.cs
-```
-
-Rules:
-- Test project folder lives under `tests/` at the solution root, mirroring `src/`
-- Unit and integration tests are separated into `Unit/` and `Integration/` subfolders
-- Never mix unit and integration tests in the same file
-- Keep shared xUnit runner and coverage packages in `Directory.Build.props`
-- Add package references directly to a test `.csproj` only when they are
-  project-specific and not broadly needed by other test projects
-
-### Directory.Build.props
-
-Place `Directory.Build.props` in the `tests/` folder so its scope stays within
-test projects only. It injects shared test dependencies conditionally based on
-`<IsTestProject>` and `<TargetFramework>`, so individual `.csproj` files stay
-minimal unless they need project-specific packages.
-
-If your repository uses `tests/` (plural) instead of `test/`, apply the same
-pattern in that folder.
-
-```xml
-<Project>
-
-    <!-- ============================================================
-         Defaults applied to projects under test/
-    ============================================================ -->
-    <PropertyGroup>
-        <IsPackable>false</IsPackable>
-        <!-- IsTestProject defaults to true; shared support libraries opt out explicitly -->
-        <IsTestProject Condition="'$(IsTestProject)' == ''">true</IsTestProject>
-    </PropertyGroup>
-
-    <!-- ============================================================
-         Packages injected into ALL projects under test/
-         (both executable test projects and shared support libraries)
-    ============================================================ -->
-    <ItemGroup>
-        <PackageReference Include="Bogus" Version="34.*" />
-    </ItemGroup>
-
-    <!-- ============================================================
-         Packages injected ONLY into executable test projects
-         (IsTestProject = true)
-    ============================================================ -->
-
-    <!-- .NET 8+ → xUnit v3 + Microsoft Testing Platform -->
-    <ItemGroup Condition="'$(IsTestProject)' == 'true'
-             and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
-        <PackageReference Include="xunit.v3" Version="1.*" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
-        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.*" />
-        <PackageReference Include="coverlet.collector" Version="6.*">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-    </ItemGroup>
-
-    <!-- .NET 6/7 → xUnit v2 + VSTest -->
-    <ItemGroup Condition="'$(IsTestProject)' == 'true'
-             and !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
-        <PackageReference Include="xunit" Version="2.*" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
-        <PackageReference Include="coverlet.collector" Version="6.*">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-    </ItemGroup>
-
-    <!-- MTP properties for .NET 8+ test projects -->
-    <PropertyGroup Condition="'$(IsTestProject)' == 'true'
-                 and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
-        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-        <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
-    </PropertyGroup>
-
-</Project>
-```
-
-### Minimal .csproj for an executable test project
-
-Because `Directory.Build.props` handles shared packages and MTP properties,
-the `.csproj` typically only needs to declare the target framework and project
-reference:
-
-```xml
-<!-- tests/MyLib.XUnit/MyLib.XUnit.csproj -->
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\src\MyLib\MyLib.csproj" />
-    </ItemGroup>
-</Project>
-```
-
-If a specific test project requires additional packages that are not shared by
-other test projects, add those `PackageReference` entries in that project's
-`.csproj`.
-
-### Minimal .csproj for a shared test support library
-
-```xml
-<!-- tests/MyLib.Testing/MyLib.Testing.csproj -->
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <!-- Opt out of xUnit runner injection from Directory.Build.props -->
-        <IsTestProject>false</IsTestProject>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\src\MyLib\MyLib.csproj" />
-    </ItemGroup>
-</Project>
-```
-
-The `.XUnit` project then references the `.Testing` library:
-
-```xml
-<ItemGroup>
-    <ProjectReference Include="..\..\src\MyLib\MyLib.csproj" />
-    <ProjectReference Include="..\MyLib.Testing\MyLib.Testing.csproj" />
-</ItemGroup>
-```
-
-### Multi-targeting
-
-For solutions that target multiple frameworks, set `<TargetFrameworks>` in
-the `.csproj` — `Directory.Build.props` conditions handle the rest:
-
-```xml
-<TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
-```
-
-No further changes to `Directory.Build.props` are needed.
-
-### Code coverage — running and reporting
-
-Shared package setup is handled by `test/Directory.Build.props` (see above).
-Use the following commands to collect and report coverage.
-
-**MTP (.NET 8+):**
-```bash
-# Collect in Cobertura format
-dotnet test --coverage --coverage-output ./coverage --coverage-output-format cobertura
-
-# Filter and collect together
-dotnet test --coverage -- --filter "Category=Unit"
-```
-
-**VSTest (.NET 6/7):**
-```bash
-dotnet test --collect:"XPlat Code Coverage" \
-            --settings test/coverlet.runsettings \
-            --results-directory ./coverage
-```
-
-### Coverage configuration — coverlet.runsettings
-
-Place a `coverlet.runsettings` file in the `test/` folder for VSTest exclusions.
-MTP picks up the same exclusion patterns via MSBuild properties in
-`Directory.Build.props` or the `--coverage-include` / `--coverage-exclude` flags.
-
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<RunSettings>
-    <DataCollectionRunSettings>
-        <DataCollectors>
-            <DataCollector friendlyName="XPlat Code Coverage">
-                <Configuration>
-                    <Format>cobertura</Format>
-                    <Exclude>[*.XUnit]*,[*.Testing]*,[*.Migrations]*</Exclude>
-                    <ExcludeByAttribute>GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
-                    <ExcludeByFile>**/Program.cs,**/Migrations/**</ExcludeByFile>
-                    <SingleHit>false</SingleHit>
-                    <IncludeTestAssembly>false</IncludeTestAssembly>
-                </Configuration>
-            </DataCollector>
-        </DataCollectors>
-    </DataCollectionRunSettings>
-</RunSettings>
-```
-
-> **Note:** FluentAssertions is **not used** in this project. All assertions
-> use xUnit's built-in `Assert` class exclusively.
----
-
-## 2. Test Naming Convention
+## 1. Test Naming Convention
 
 All test methods follow the pattern:
 
@@ -279,7 +51,7 @@ Rules:
 
 ---
 
-## 3. Test Class Structure
+## 2. Test Class Structure
 
 Each test class must follow this internal layout order:
 
@@ -368,7 +140,7 @@ Rules:
 
 ---
 
-## 4. Test Data — Bogus & Randomization
+## 3. Test Data — Bogus & Randomization
 
 All test data must be generated using **Bogus**. Never use hardcoded literals
 for names, emails, addresses, IDs, amounts, or any domain value that could
@@ -482,7 +254,7 @@ public void Should_ThrowArgumentException_When_QuantityIsNotPositive(Order order
 
 ---
 
-## 5. Fixtures
+## 4. Fixtures
 
 Fixtures that are reused across multiple test projects belong in the shared
 `.Testing` project (e.g. `MyLib.Testing`). Fixtures used by a single test
@@ -498,7 +270,7 @@ namespace MyLib.Testing.Fixtures;
 
 public class OrderServiceFixture
 {
-    // Bogus Faker defined once — see Section 4 for full rules
+    // Bogus Faker defined once — see Section 3 for full rules
     private static readonly Faker<Order> OrderFaker = new Faker<Order>("en")
         .RuleFor(o => o.Id, f => f.Random.Guid())
         .RuleFor(o => o.ProductId, f => f.Commerce.Ean13())
@@ -561,7 +333,7 @@ public class OrderRepositoryTests
 
 ---
 
-## 6. Traits — Categorization
+## 5. Traits — Categorization
 
 All tests must be decorated with `[Trait]` to allow selective test runs in CI.
 
@@ -597,7 +369,7 @@ dotnet test --filter "Feature=OrderProcessing"
 
 ---
 
-## 7. Integration Tests
+## 6. Integration Tests
 
 Integration tests live in the `Integration/` subfolder and follow the same
 naming and structure conventions as unit tests, with these additional rules:
@@ -642,20 +414,11 @@ public class OrderRepositoryIntegrationTests
 
 ---
 
-## 8. What the Agent Must Never Do
+## 7. What the Agent Must Never Do
 
-- Do not place tests directly in the solution root or `src/` folder
-- Do not name test projects with the `.Tests` suffix — use `.XUnit` for executable test projects
-- Do not duplicate shared test package references in individual test `.csproj`
-  files — keep common dependencies in `Directory.Build.props` and add local
-  `PackageReference` entries only for project-specific needs
-- Do not set `<IsTestProject>false</IsTestProject>` on executable test projects —
-  only shared support libraries (`.Testing`) use this opt-out
 - Do not use `[Fact]` where `[Theory]` is more appropriate
 - Do not write test methods without all three AAA comment sections
 - Do not use FluentAssertions — always use xUnit's built-in `Assert` class
-- Do not add `Microsoft.NET.Test.Sdk` to projects targeting .NET 8+ with xUnit v3 — it conflicts with MTP
-- Do not add `xunit` (v2) packages alongside `xunit.v3` — they are mutually exclusive
 - Do not share mutable state between tests without a fixture
 - Do not name test methods with generic names like `Test1`, `TestProcess`, etc.
 - Do not skip adding `[Trait]` attributes
@@ -669,7 +432,7 @@ public class OrderRepositoryIntegrationTests
 
 ---
 
-## 9. Local References
+## 8. Local References
 
 Additional supporting material for this skill is available in the
 [`references/README.md`](./references/README.md) index beside this file.
@@ -677,9 +440,7 @@ Additional supporting material for this skill is available in the
 - [`references/README.md`](./references/README.md) — overview and topic index
 - [`references/xunit.md`](./references/xunit.md) — xUnit framework, fixtures, theories, and traits
 - [`references/dotnet-testing-platform.md`](./references/dotnet-testing-platform.md) — runner and platform guidance by target framework
-- [`references/coverage.md`](./references/coverage.md) — coverage collection and reporting references
 - [`references/bogus.md`](./references/bogus.md) — randomized test data guidance
-- [`references/msbuild.md`](./references/msbuild.md) — tests-folder-scoped `Directory.Build.props` guidance for test project configuration
 
 Use these files when deeper background or authoritative external links are
 helpful, while treating this `SKILL.md` as the primary instruction source.

@@ -1,0 +1,13 @@
+{
+  "name": "dotnet-arch",
+  "description": ".NET agent skills for reusable framework and architecture organization",
+  "version": "1.0.0",
+  "author": {
+    "name": "Antonello Provenzano"
+  },
+  "license": "MIT",
+  "keywords": ["dotnet", "csharp", "architecture", "framework", "libraries", "nuget"],
+
+  "skills": ["skills/"]
+}
+

@@ -8,6 +8,12 @@
       "manifestPath": "plugins/dotnet-tests/plugin.json",
       "status": "active",
       "tags": ["dotnet", "csharp", "xunit", "testing", "tests"]
+    },
+    {
+      "id": "dotnet-arch",
+      "manifestPath": "plugins/dotnet-arch/plugin.json",
+      "status": "active",
+      "tags": ["dotnet", "csharp", "architecture", "framework", "libraries", "nuget"]
     }
   ]
 }
