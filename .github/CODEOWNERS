@@ -1,1 +1,3 @@
 . @tsutomi
+/plugins/dotnet-arch/skills/entity-mgmt-arch/ @tsutomi
+/tests/cases/dotnet-arch/entity-mgmt-arch/ @tsutomi

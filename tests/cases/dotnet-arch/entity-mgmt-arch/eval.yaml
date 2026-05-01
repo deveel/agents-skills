@@ -1,0 +1,100 @@
+scenarios:
+  - name: "Recommend managed aggregate lifecycle architecture for a rich domain model"
+    prompt: |
+      I am building a .NET domain layer for orders and line items. Validation,
+      creation, updates, and deletes are currently spread across service classes,
+      and I want a DDD-oriented architecture that manages aggregates more cleanly.
+      What architecture and framework should I use?
+    assertions:
+      - type: "output_contains"
+        value: "Deveel.Repository"
+      - type: "output_matches"
+        pattern: "(aggregate|aggregate root)"
+      - type: "output_matches"
+        pattern: "(Entity Manager|entity manager)"
+      - type: "output_matches"
+        pattern: "(custom\\s+IRepository|IRepository\\s+implementation|dedicated\\s+repository)"
+      - type: "output_matches"
+        pattern: "(custom\\s+EntityManager|EntityManager<|specialized\\s+entity\\s+manager)"
+      - type: "output_matches"
+        pattern: "(IEntityValidator|entity validator)"
+      - type: "output_matches"
+        pattern: "(validation|validate)"
+      - type: "output_matches"
+        pattern: "(creation|create|mutation|update|delete|deletion)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized that lifecycle rules should be organized around aggregate boundaries instead of being scattered across generic services"
+      - "Recommended a coherent approach for handling validation, creation, mutation, and deletion of domain entities"
+      - "Recommended defining a dedicated IRepository implementation for aggregate persistence responsibilities"
+      - "Recommended defining a custom EntityManager implementation for lifecycle orchestration"
+      - "Recommended dedicated entity validation via an IEntityValidator-style contract integrated with manager-driven orchestration"
+      - "Pointed the developer toward an existing lifecycle-management framework rather than a custom ad-hoc pipeline"
+    timeout: 120
+
+  - name: "Refactor an anemic domain model toward aggregate and entity manager orchestration"
+    prompt: |
+      This project has an Order entity with public setters and an OrderService that
+      directly edits state, validates requests, and deletes records. Please explain
+      how to restructure it so the domain model is richer, lifecycle management is
+      handled consistently, and I do not have to hand-roll the orchestration myself.
+    setup:
+      files:
+        - path: "src/Sales.Domain/Order.cs"
+          content: |
+            namespace Sales.Domain;
+
+            public class Order
+            {
+                public Guid Id { get; set; }
+                public string CustomerName { get; set; } = string.Empty;
+                public decimal Total { get; set; }
+                public bool IsDeleted { get; set; }
+            }
+        - path: "src/Sales.Application/OrderService.cs"
+          content: |
+            namespace Sales.Application;
+
+            public class OrderService
+            {
+                public void Update(Order order, string customerName, decimal total)
+                {
+                    order.CustomerName = customerName;
+                    order.Total = total;
+                }
+
+                public void Delete(Order order)
+                {
+                    order.IsDeleted = true;
+                }
+            }
+    assertions:
+      - type: "output_contains"
+        value: "Deveel.Repository"
+      - type: "output_matches"
+        pattern: "(public setters|setters|anemic)"
+      - type: "output_matches"
+        pattern: "(aggregate|aggregate root)"
+      - type: "output_matches"
+        pattern: "(Entity Manager|entity manager)"
+      - type: "output_matches"
+        pattern: "(custom\\s+IRepository|IRepository\\s+implementation|dedicated\\s+repository)"
+      - type: "output_matches"
+        pattern: "(custom\\s+EntityManager|EntityManager<|specialized\\s+entity\\s+manager)"
+      - type: "output_matches"
+        pattern: "(IEntityValidator|entity validator)"
+      - type: "exit_success"
+    rubric:
+      - "Identified direct setter-based mutation and service-heavy lifecycle logic as an architectural smell in a DDD model"
+      - "Explained that state changes should move behind aggregate behavior while orchestration is coordinated consistently"
+      - "Recommended a managed lifecycle approach that keeps validation and deletion rules explicit without relying on a custom ad-hoc orchestration layer"
+      - "Recommended implementing a custom IRepository and a custom EntityManager for this aggregate lifecycle"
+      - "Included dedicated IEntityValidator guidance and kept repository implementations persistence-focused"
+    timeout: 120
+
+
+
+
+
+
+
