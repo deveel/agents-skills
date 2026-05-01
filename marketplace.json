@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "name": "agents-skills-marketplace",
+  "description": "Discovery index for Copilot skill plugins in this repository.",
+  "plugins": [
+    {
+      "id": "dotnet-tests",
+      "manifestPath": "plugins/dotnet-tests/plugin.json",
+      "status": "active",
+      "tags": ["dotnet", "csharp", "xunit", "testing", "tests"]
+    }
+  ]
+}
+
