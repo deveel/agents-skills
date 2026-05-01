@@ -1,0 +1,12 @@
+{
+  "name": "dotnet-tests",
+  "description": ".NET agent skills for xUnit testing",
+  "version": "1.0.0",
+  "author": {
+    "name": "Antonello Provenzano"
+  },
+  "license": "MIT",
+  "keywords": ["dotnet", "csharp", "xunit", "testing", "tests"],
+
+  "skills": ["skills/"]
+}
