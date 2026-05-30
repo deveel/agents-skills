@@ -60,6 +60,84 @@ When describing an implementation, anchor it on this sequence:
 - Decide explicitly whether deletion means hard delete, soft delete, archive, or status transition
 - Let the `Entity Manager` coordinate checks and persistence for the chosen policy
 
+## API surface mirroring
+
+The `Entity Manager` should expose a method surface that mirrors the underlying
+repository. For example, if the `IRepository` implementation provides `FindUserByNameAsync`,
+the `EntityManager<>` subclass should also expose `FindUserByNameAsync`. This
+keeps the application layer from taking a direct dependency on the repository and
+routes all access through the managed lifecycle boundary.
+
+The three rules that differentiate the Entity Manager method from its repository
+counterpart:
+
+1. **No `CancellationToken` parameter.** The Entity Manager obtains the current
+   cancellation token through an injected context service (e.g. an
+   `IOperationContext` or equivalent ambient-context abstraction). Callers do not
+   pass tokens directly; the manager resolves them internally.
+
+2. **Always returns `OperationResult` or `OperationResult<TEntity>`.** Every
+   method on the Entity Manager communicates outcome through a typed result
+   object, never by throwing or by returning a raw entity or `bool`. This
+   includes query-style methods — a lookup that finds nothing returns a
+   failed or empty `OperationResult<T>`, not `null`.
+
+3. **Repository errors are caught and wrapped.** The Entity Manager method
+   wraps every call to the underlying `IRepository` in a try/catch (or equivalent
+   error-handling policy). Exceptions originating in the repository are converted
+   to `OperationResult.Fail(...)` with an appropriate error description, so callers
+   always receive a structured result instead of an unhandled exception propagating
+   through the application layer.
+
+### Guidance for generating Entity Manager members
+
+When generating or reviewing an `EntityManager<>` subclass:
+
+- For every repository method that the application layer needs to call, add a
+  matching method on the manager with the same name and the same non-cancellation
+  parameters.
+- Remove `CancellationToken` from the signature; resolve it from the injected
+  context service inside the method body.
+- Change the return type to `Task<OperationResult>` or
+  `Task<OperationResult<TEntity>>` (or their synchronous equivalents if the
+  framework supports them).
+- Wrap the repository call in a try/catch and return `OperationResult.Fail` for
+  any exception, logging if appropriate before returning.
+- Keep business-rule checks (validators, invariant enforcement) before the
+  repository call so that structural failures are reported before persistence
+  is attempted.
+
+### Example shape
+
+```csharp
+// Repository contract
+Task<User?> FindUserByNameAsync(string name, CancellationToken cancellationToken);
+
+// Entity Manager counterpart
+public async Task<OperationResult<User>> FindUserByNameAsync(string name)
+{
+    try
+    {
+        // CaancellationToken is a property on the manager, resolved from the context service
+        var user = await _repository.FindUserByNameAsync(name, CancellationToken);
+        return user is null
+            ? OperationResult.Fail<User>("USER_NOT_FOUND", "User not found.")
+            : OperationResult.Success(user);
+    }
+    catch (Exception ex)
+    {
+        // Logger method is an extension to the ILogger that uses
+        // the LoggerMessage pattern to log structured messages.
+        Logger.WarnUserNotFoundError(ex, name);
+        return OperationResult.Fail<User>(ex);
+    }
+}
+```
+
+Apply the same shape to create, update, and delete methods: name matches the
+repository, no token parameter, result is always an `OperationResult`, exceptions
+become failures.
+
 ## Anti-patterns to call out
 
 Highlight these smells when present in the user's code or design:

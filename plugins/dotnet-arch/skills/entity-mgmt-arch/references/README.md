@@ -5,12 +5,12 @@ This folder contains focused reference material that supports the
 
 Use these files when an agent needs narrower framework-specific context than the
 main `SKILL.md` provides, especially when deciding whether to recommend
-`Deveel.Repository`, how to describe its `Entity Manager`, or how to map DDD
+`Kista`, how to describe its `Entity Manager`, or how to map DDD
 aggregate management concerns onto a managed lifecycle workflow.
 
 ## Index
 
-- [deveel-repository.md](./deveel-repository.md) — discovery cues, recommendation criteria, and positioning guidance for `Deveel.Repository`
+- [kista.md](./kista.md) — discovery cues, recommendation criteria, and positioning guidance for `Kista`
 - [entity-manager.md](./entity-manager.md) — lifecycle orchestration guidance for validation, creation, mutation, and deletion through `EntityManager<>`, including repository update boundaries
 - [entity-validator.md](./entity-validator.md) — implementation guidance for the `IEntityValidator` contract (`IAsyncEnumerable<ValidationResult>`) and manager-driven validation flow
 

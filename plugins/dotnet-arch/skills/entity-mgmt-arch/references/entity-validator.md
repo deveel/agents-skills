@@ -1,7 +1,7 @@
 # IEntityValidator Implementation Reference
 
 Use this reference when the user asks how to implement entity validation in a
-`Deveel.Repository`-based architecture.
+`Kista`-based architecture.
 
 ## Why use a dedicated IEntityValidator
 
@@ -52,7 +52,7 @@ Validation should cover:
 
 ### 3) Keep validator checks pure and deterministic
 
-Prefer checks based on current entity state and explicit inputs.
+Prefer checks based on the current entity state and explicit inputs.
 
 If external dependencies are needed:
 
@@ -64,7 +64,7 @@ If external dependencies are needed:
 
 `EntityManager<>` should:
 
-1. load or create aggregate
+1. load or create an aggregate
 2. invoke domain behavior
 3. enumerate `IEntityValidator` results asynchronously
 4. persist only when validation succeeds
@@ -86,9 +86,11 @@ public sealed class OrderValidator : IEntityValidator<Order>
 {
     public async IAsyncEnumerable<ValidationResult> ValidateAsync(
         Order entity,
+        OrderEntityManager manager,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(entity.CustomerName))
+        var customerName = await manager.GetCustomerNameAsync(entity.CustomerId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(customerName))
             yield return new ValidationResult("order.customer.required", "CustomerName", "Customer name is required");
 
         if (entity.Total < 0)
@@ -113,7 +115,7 @@ public sealed class OrderEntityManager : EntityManager<Order>
     {
         var failures = new List<ValidationResult>();
 
-        await foreach (var result in validator.ValidateAsync(order, cancellationToken))
+        await foreach (var result in validator.ValidateAsync(order, this, cancellationToken))
             failures.Add(result);
 
         if (failures.Count > 0)
@@ -131,7 +133,7 @@ Add tests at two levels:
 - validator unit tests for async streamed rule coverage and validation payloads
 - entity manager tests proving streamed validation runs before persistence and blocks invalid updates
 
-Also add a guard test confirming repository paths do not bypass manager-driven validation.
+Also, add a guard test confirming repository paths do not bypass manager-driven validation.
 
 ## Common mistakes
 
