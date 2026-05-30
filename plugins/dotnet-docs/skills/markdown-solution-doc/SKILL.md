@@ -31,7 +31,7 @@ This skill helps agents plan, write, organize, and **keep current** Markdown-bas
 - Writing or improving the root `README.md` and per-project `README.md` files
 - Building a GitBook-compatible documentation site (`SUMMARY.md`, chapter pages)
 - Writing how-to guides and topic pages placed directly in the docs root
-- Writing a `CHANGELOG.md` following Keep a Changelog conventions
+- Writing a `CHANGELOG.md` following Keep a Changelog conventions **when the user requests it**
 - Adding `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, or `SECURITY.md`
 - Writing architecture documentation or ADRs **when the user explicitly requests them**
 - Producing an API overview **when the user confirms it is needed** and the target platform supports it
@@ -56,6 +56,7 @@ This skill helps agents plan, write, organize, and **keep current** Markdown-bas
 | Existing docs | No | Any current documentation to review, improve, or restructure |
 | Include architecture docs | No | Whether to generate an `architecture/` section — **must be confirmed with the user** |
 | Include API docs | No | Whether to generate an `api/` section — **must be confirmed with the user** |
+| Include CHANGELOG | No | Whether to generate and maintain a `CHANGELOG.md` — **must be confirmed with the user** |
 | Nature of change | No | For update tasks: whether the task adds a new feature, changes an existing one, or removes/deprecates one |
 | Changelog history | No | Version history or release notes to incorporate |
 
@@ -76,8 +77,9 @@ Before generating any documentation, explicitly ask the user:
 
 1. **Architecture documentation**: "Do you want an `architecture/` section with an overview page and support for Architecture Decision Records (ADRs)?" — Do **not** generate `architecture/` unless the user confirms.
 2. **API documentation**: "Do you want an `api/` section with per-library overview pages?" — Explain that this section can be large and depends on the target platform. Do **not** generate `api/` unless the user confirms.
+3. **Changelog**: "Do you want a `CHANGELOG.md` to track notable changes over time?" — Do **not** generate or maintain `CHANGELOG.md` unless the user confirms.
 
-If the user's original request already provides a clear answer to either question (e.g., "create an architecture overview"), treat that as confirmation and skip asking.
+If the user's original request already provides a clear answer to any question (e.g., "create an architecture overview", "add a changelog entry"), treat that as confirmation and skip asking for that item.
 
 ### Step 3: Define the documentation structure
 
@@ -92,7 +94,6 @@ docs/
   <complex-topic>/       # Subfolder for topics that span multiple pages
     README.md            # Overview / entry point for the topic
     <subtopic>.md        # Individual sub-pages
-  changelog.md           # Or CHANGELOG.md at repository root
   contributing.md        # Or CONTRIBUTING.md at repository root
   architecture/          # ONLY if confirmed by the user
     overview.md          # High-level architecture diagram and description
@@ -102,6 +103,8 @@ docs/
     overview.md          # API surface description and usage patterns
     <project-name>.md    # Per-library API overview (one file per main library)
 ```
+
+> `CHANGELOG.md` is optional. When present (user confirmed), place it at the repository root. It does **not** belong inside `docs/`.
 
 Key layout rules:
 - **Simple topics** (single-page coverage) are placed as individual `.md` files **directly at the `docs/` root**. Name them by subject (e.g., `authentication.md`, `configuration.md`).
@@ -117,19 +120,29 @@ Adapt the structure based on the platform:
 
 ### Step 4: Write the root README.md
 
-The root `README.md` is the entry point for all audiences. It must include:
+The root `README.md` is the single entry point that gives any reader — in seconds — a clear picture of what the project does, how to start, and where to learn more. It must be **brief**: no exhaustive API tours, no lengthy configuration walkthroughs. All detail lives in `docs/`.
+
+The root `README.md` must contain exactly these sections, in order:
 
 1. **Project name and one-line description** (heading + tagline)
 2. **Badges** (build status, NuGet version, license, coverage — as applicable)
-3. **Overview**: Two to four sentences explaining what the solution is, what problem it solves, and who it is for
-4. **Features** (bullet list of key capabilities)
-5. **Packages** — see rules below
-6. **Quick start**: The minimal code snippet or command to get something working
-7. **Installation**: NuGet package names and `dotnet add package` commands, or clone instructions
-8. **Documentation link**: Point to the `docs/` folder or hosted site
-9. **License** and **contributing** links
+3. **Summary**: Two to four sentences — what the solution is, what problem it solves, and who it is for. Nothing more.
+4. **Packages** — see rules below
+5. **Usage**: Two to four short, self-contained code snippets covering only the most common scenarios. Each snippet must:
+   - Be complete enough to copy-paste and run
+   - Cover a distinct major use case (e.g., creating a payment, handling a webhook)
+   - Be followed by a one-line explanation of what it demonstrates
+   - End with "→ See [topic page](docs/<topic>.md) for full details." linking to the relevant documentation page
+   - Not exceed 20 lines per snippet; if it would, it is too detailed for the README
+6. **Installation**: NuGet package names with `dotnet add package` commands (≤ 3 packages) or a pointer to the Packages section (> 3 packages)
+7. **Documentation**: A short list of links into `docs/` — getting-started guide, and two or three key topic pages. Do not reproduce the full `SUMMARY.md` here.
+8. **License** and **contributing** links
 
-Keep the root `README.md` concise. Move detailed content into topic pages at the `docs/` root.
+**What does not belong in the root README:**
+- Step-by-step configuration guides
+- Full API reference or method listings
+- More than four usage snippets
+- Content that already lives in a `docs/` topic page
 
 #### Packages section rules
 
@@ -282,9 +295,11 @@ Each page should:
 2. Show the most important types and how they are typically composed
 3. Link to the getting-started guide and relevant how-to pages
 
-### Step 9: Write the CHANGELOG
+### Step 9: Write the CHANGELOG (only if confirmed in Step 2)
 
-Follow [Keep a Changelog](https://keepachangelog.com) conventions:
+`CHANGELOG.md` is optional. Do not create or update it unless the user has confirmed they want one (Step 2), or the user explicitly references it in their request.
+
+When present, follow [Keep a Changelog](https://keepachangelog.com) conventions:
 
 ```markdown
 # Changelog
@@ -302,7 +317,7 @@ All notable changes to this project will be documented in this file.
 ### Security
 ```
 
-Place `CHANGELOG.md` at the repository root. For multi-package solutions, keep one changelog per independently versioned package.
+Place `CHANGELOG.md` at the **repository root**, not inside `docs/`. For multi-package solutions, keep one changelog per independently versioned package.
 
 ### Step 10: Write the getting-started guide
 
@@ -327,7 +342,6 @@ Place `CHANGELOG.md` at the repository root. For multi-package solutions, keep o
   * [Configuration](multi-tenancy/configuration.md)
   * [Data Isolation](multi-tenancy/data-isolation.md)
   * [Tenant Resolution](multi-tenancy/tenant-resolution.md)
-* [Changelog](changelog.md)
 * [Contributing](contributing.md)
 * [Architecture](architecture/overview.md)
   * [ADR-0001 Use Kista](architecture/decisions/adr-0001-use-kista.md)
@@ -335,12 +349,15 @@ Place `CHANGELOG.md` at the repository root. For multi-package solutions, keep o
   * [Payments Library](api/payments.md)
 ```
 
+> If a `CHANGELOG.md` exists (user-confirmed), link it from `SUMMARY.md` after topic pages and before optional sections: `* [Changelog](../CHANGELOG.md)`. Because `CHANGELOG.md` lives at the repository root, the path from `docs/SUMMARY.md` must go up one level.
+
 Rules for `SUMMARY.md`:
 - Use relative paths from the docs root
 - Indent child pages with two spaces
 - Every listed file must exist; broken links cause GitBook to fail
 - Do not nest more than three levels deep
 - Single-page topics appear as flat entries; multi-page topic subfolders appear as a parent entry pointing to the subfolder `README.md`, with sub-pages indented beneath
+- `CHANGELOG.md` is linked only when the user has confirmed it should exist; use `../CHANGELOG.md` because it lives at the repository root
 - `architecture/` and `api/` are listed only when the user has confirmed they are needed
 - `api/` always appears after `architecture/` when both are present
 
@@ -360,7 +377,7 @@ Before writing or modifying any doc page, scan the existing `docs/` folder and i
 
 1. Update every affected guide page: correct instructions, code examples, configuration snippets, and any behavior description that is no longer accurate.
 2. If the change is breaking or alters observable behavior, add a short callout or note near the top of the affected page.
-3. Add a `### Changed` entry under `[Unreleased]` in `CHANGELOG.md`.
+3. If a `CHANGELOG.md` exists, add a `### Changed` entry under `[Unreleased]`.
 
 #### For a new feature
 
@@ -369,14 +386,14 @@ Before writing or modifying any doc page, scan the existing `docs/` folder and i
    - Complex feature with multiple subtopics → new topic subfolder under `docs/` with a `README.md` entry point.
 2. Write the new page(s) following the guide-page format.
 3. Add the new page or subfolder to `SUMMARY.md` (if using GitBook) in the correct position — before `architecture/` and `api/`.
-4. Update the root `README.md` features list if the new feature is significant enough to appear there.
-5. Add a `### Added` entry under `[Unreleased]` in `CHANGELOG.md`.
+4. Update the root `README.md` usage section if the new feature is significant enough to warrant a snippet there.
+5. If a `CHANGELOG.md` exists, add a `### Added` entry under `[Unreleased]`.
 
 #### For a deprecated or removed feature
 
 1. If deprecated: mark the relevant guide content with a deprecation notice and link to the replacement feature's documentation.
 2. If removed: delete or archive the guide page(s), remove the entries from `SUMMARY.md`, and update any cross-links from other pages that pointed to the removed content.
-3. Add a `### Deprecated` or `### Removed` entry under `[Unreleased]` in `CHANGELOG.md`.
+3. If a `CHANGELOG.md` exists, add a `### Deprecated` or `### Removed` entry under `[Unreleased]`.
 
 #### Rules
 
@@ -396,13 +413,17 @@ Before finishing:
 - Confirm there is no generic `guides/` subfolder — topic subfolders are named after their subject
 - Confirm that `api/` (if present) is the last section in both the folder and in `SUMMARY.md`
 - Confirm that `architecture/` (if present) was explicitly requested by the user
-- Confirm that every code change in this task has a corresponding doc update and a `CHANGELOG.md` entry
+- Confirm that `CHANGELOG.md` (if present) was explicitly requested by the user and is not inside `docs/`
+- Confirm that every code change in this task has a corresponding doc update
+- If a `CHANGELOG.md` exists, confirm it has an entry for every feature change or addition in this task
 - Validate Mermaid diagrams render correctly by checking syntax
 - Ensure heading hierarchy is consistent (one `#` per page, `##` for sections, `###` for subsections)
 
 ## Validation
 
-- [ ] Root `README.md` exists and covers name, overview, quick start, installation, and links
+- [ ] Root `README.md` is brief: summary (2-4 sentences), usage snippets (2-4 major cases only), installation, and documentation links
+- [ ] Each usage snippet covers a distinct major use case, is ≤ 20 lines, and ends with a link to the relevant `docs/` page
+- [ ] The root README does not contain step-by-step guides, full API listings, or content that belongs in `docs/`
 - [ ] Solutions with more than 3 packages have a dedicated **## Packages** section with NuGet badges and one-sentence descriptions
 - [ ] Solutions with 3 or fewer packages list them inline in the Installation section without a separate Packages section
 - [ ] NuGet badges use the Shields.io format and link to the correct NuGet.org package page
@@ -415,12 +436,13 @@ Before finishing:
 - [ ] There is no generic `guides/` subfolder — subfolders are named by topic
 - [ ] The user was asked before generating `architecture/` — the folder exists only if confirmed
 - [ ] The user was asked before generating `api/` — the folder exists only if confirmed
+- [ ] The user was asked before generating `CHANGELOG.md` — the file exists only if confirmed
+- [ ] When `CHANGELOG.md` is present, it is at the repository root (not inside `docs/`) and follows Keep a Changelog conventions
 - [ ] When `api/` is present, it appears at the end of the docs folder and after `architecture/`
 - [ ] All internal Markdown links use relative paths and resolve to existing files
 - [ ] ADRs (if present) are numbered sequentially and use the standard status/context/decision/consequences format
-- [ ] `CHANGELOG.md` follows Keep a Changelog conventions
 - [ ] Every feature change or addition in this task has a corresponding doc update
-- [ ] Every feature change or addition in this task has a `CHANGELOG.md` entry under `[Unreleased]`
+- [ ] If `CHANGELOG.md` is present, every feature change or addition has an entry under `[Unreleased]`
 - [ ] Newly added pages are listed in `SUMMARY.md` and are reachable from navigation
 - [ ] Removed or deprecated features have their documentation marked or removed accordingly
 - [ ] No page is orphaned (all files are reachable from the navigation structure)
@@ -433,7 +455,11 @@ Before finishing:
 
 | Pitfall | Solution |
 |---------|----------|
-| Root `README.md` is too long and mixes guide content | Move detailed content into topic pages or topic subfolders at the `docs/` root; keep the root README as an entry point |
+| Root `README.md` is too long and mixes guide content | The README must contain only: summary, usage snippets for major cases, packages, installation, and doc links — all detail goes into `docs/` |
+| Usage section has too many snippets | Limit to 2-4 snippets covering only the most common scenarios; edge cases and advanced usage belong in guide pages |
+| Usage snippet exceeds 20 lines | The snippet is too complex for the README; move the full example to a guide page and link to it |
+| Usage snippet has no link to docs | Every snippet must end with a "→ See [topic](docs/topic.md) for full details." reference |
+| README duplicates content already in docs/ | Remove duplicated content from the README and replace it with a link to the relevant doc page |
 | More than 3 packages but no dedicated Packages section | Create a `## Packages` table with NuGet badges and one-sentence descriptions when the solution has more than 3 packages |
 | NuGet badge URL uses the wrong format or links to a search page | Use `https://img.shields.io/nuget/v/<PackageId>.svg` linking to `https://www.nuget.org/packages/<PackageId>` |
 | Package descriptions in the Packages table are more than one sentence | Keep each description to one sentence; deeper content belongs in per-project READMEs or guide pages |
@@ -448,7 +474,9 @@ Before finishing:
 | Feature changed but documentation not updated | Apply Step 12: scan all affected pages and update them as part of the same task |
 | New feature added but no new or updated doc page was written | Every new feature must have at least one guide page; apply the single-page vs. subfolder rule |
 | Feature removed but old guide pages remain | Delete or archive orphaned pages and remove them from `SUMMARY.md` |
-| CHANGELOG not updated after a feature change | Every Added, Changed, Deprecated, or Removed item must have a `CHANGELOG.md` entry under `[Unreleased]` |
+| CHANGELOG created without user confirmation | `CHANGELOG.md` is optional — only create it when the user explicitly requests it |
+| CHANGELOG placed inside docs/ | `CHANGELOG.md` belongs at the repository root, not inside the `docs/` folder |
+| CHANGELOG not updated after a feature change | When `CHANGELOG.md` exists, every Added, Changed, Deprecated, or Removed item must have an entry under `[Unreleased]` |
 | New page added but not listed in `SUMMARY.md` | Always update `SUMMARY.md` when adding a new page; orphaned pages are not navigable on GitBook |
 | Documentation update is deferred to a later task | Docs and code changes must land together — deferring produces stale documentation |
 | GitBook `SUMMARY.md` references files that don't exist | Create all listed files before publishing; GitBook fails on missing links |

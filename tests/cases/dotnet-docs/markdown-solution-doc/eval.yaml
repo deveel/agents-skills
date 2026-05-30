@@ -4,8 +4,19 @@ scenarios:
       My .NET solution is called Deveel.Payments and contains three projects:
       Deveel.Payments (the core library), Deveel.Payments.EntityFramework (EF Core integration),
       and Deveel.Payments.AspNetCore (ASP.NET Core middleware). There is no README.md yet.
-      Please create a root README.md with an overview, quick start, installation instructions,
-      and links to documentation.
+      Please create a root README.md.
+    setup:
+      files:
+        - path: "docs/getting-started.md"
+          content: |
+            # Getting Started
+
+            Install the package and create your first payment.
+        - path: "docs/payments.md"
+          content: |
+            # Payments
+
+            Full guide on creating and managing payments.
     assertions:
       - type: "file_exists"
         path: "README.md"
@@ -15,18 +26,55 @@ scenarios:
       - type: "file_contains"
         path: "README.md"
         value: "dotnet add package"
+      - type: "file_contains"
+        path: "README.md"
+        value: "docs/"
       - type: "file_not_contains"
         path: "README.md"
         value: "## Packages"
       - type: "exit_success"
     rubric:
-      - "Created a README.md at the repository root"
-      - "Included a clear one-line description and overview section"
-      - "Listed all three packages inline in the Installation section with dotnet add package commands"
-      - "Did not create a separate Packages section because there are only 3 packages"
-      - "Included a quick-start or getting-started code example"
-      - "Kept the root README concise without embedding full guides"
+      - "Created a concise README.md with a summary of no more than four sentences"
+      - "Included 2-4 usage snippets covering only the most common scenarios"
+      - "Each snippet ends with a link to the relevant docs/ page"
+      - "Listed all three packages inline in the Installation section — no separate Packages section"
+      - "Included a Documentation section linking to getting-started and key topic pages"
+      - "Did not include step-by-step guides or full API listings"
     timeout: 180
+
+  - name: "README usage snippets must link to docs and stay brief"
+    prompt: |
+      Please create a root README.md for the Deveel.Payments library. Include usage examples
+      for creating a payment and handling a webhook. There are docs at docs/payments.md
+      and docs/webhooks.md.
+    setup:
+      files:
+        - path: "docs/payments.md"
+          content: |
+            # Payments
+
+            Full guide on creating and managing payments.
+        - path: "docs/webhooks.md"
+          content: |
+            # Webhooks
+
+            Full guide on handling webhook events.
+    assertions:
+      - type: "file_exists"
+        path: "README.md"
+      - type: "file_contains"
+        path: "README.md"
+        value: "docs/payments.md"
+      - type: "file_contains"
+        path: "README.md"
+        value: "docs/webhooks.md"
+      - type: "exit_success"
+    rubric:
+      - "Included a usage snippet for creating a payment and one for handling a webhook"
+      - "Each snippet is 20 lines or fewer"
+      - "Each snippet ends with a reference link to the corresponding docs/ page"
+      - "Did not embed the full payments or webhooks guide content in the README"
+    timeout: 120
 
   - name: "Create a Packages section for a solution with more than 3 packages"
     prompt: |
@@ -90,7 +138,7 @@ scenarios:
       - "Packages without a matching architecture page do not include spurious architecture links"
     timeout: 180
 
-
+  - name: "Create a GitBook docs structure with topic hierarchy"
     prompt: |
       I have a .NET solution for an order management system. I want to create a docs/ folder
       structure compatible with GitBook that includes a SUMMARY.md, a getting-started page,
@@ -175,11 +223,75 @@ scenarios:
         path: "docs/architecture"
       - type: "file_not_exists"
         path: "docs/api"
+      - type: "file_not_exists"
+        path: "CHANGELOG.md"
       - type: "exit_success"
     rubric:
-      - "Created the core docs structure without auto-generating architecture/ or api/"
+      - "Created the core docs structure without auto-generating architecture/, api/, or CHANGELOG.md"
       - "Asked the user whether architecture documentation is needed before creating it"
       - "Asked the user whether API documentation is needed before creating it"
+      - "Asked the user whether a CHANGELOG is needed before creating it"
+    timeout: 120
+
+  - name: "Do not create CHANGELOG unless the user requests it"
+    prompt: |
+      We added a new retry policy feature to the payments library. Please document it.
+    setup:
+      files:
+        - path: "docs/README.md"
+          content: |
+            # Payments Library
+
+            Welcome to the Payments Library documentation.
+        - path: "docs/SUMMARY.md"
+          content: |
+            # Summary
+
+            * [Introduction](README.md)
+            * [Getting Started](getting-started.md)
+    assertions:
+      - type: "file_not_exists"
+        path: "CHANGELOG.md"
+      - type: "exit_success"
+    rubric:
+      - "Created or updated documentation for the retry policy feature"
+      - "Did not create CHANGELOG.md because the user did not request it"
+    timeout: 120
+
+  - name: "Write a CHANGELOG when the user explicitly requests it"
+    prompt: |
+      My library just released version 2.1.0. The changes include: a new PaymentService.BulkCreateAsync
+      method (Added), a fix for a race condition in the IdempotencyMiddleware (Fixed), and the
+      deprecation of PaymentService.CreateAsync in favor of BulkCreateAsync (Deprecated).
+      Please create or update the CHANGELOG.md accordingly.
+    assertions:
+      - type: "file_exists"
+        path: "CHANGELOG.md"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [2.1.0]"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Added"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Fixed"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Deprecated"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "BulkCreateAsync"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [Unreleased]"
+      - type: "exit_success"
+    rubric:
+      - "Created or updated CHANGELOG.md at the repository root (not inside docs/)"
+      - "Followed Keep a Changelog conventions with Added, Fixed, and Deprecated sections"
+      - "Placed the 2.1.0 release block with a date"
+      - "Kept an Unreleased block above the release entry"
+      - "Entries are concise and describe the change from the user perspective"
     timeout: 120
 
   - name: "Place API docs at the end when requested"
@@ -235,41 +347,6 @@ scenarios:
       - "Consequences section lists both positive and negative implications"
     timeout: 180
 
-  - name: "Write a CHANGELOG following Keep a Changelog"
-    prompt: |
-      My library just released version 2.1.0. The changes include: a new PaymentService.BulkCreateAsync
-      method (Added), a fix for a race condition in the IdempotencyMiddleware (Fixed), and the
-      deprecation of PaymentService.CreateAsync in favor of BulkCreateAsync (Deprecated).
-      Please create or update the CHANGELOG.md accordingly.
-    assertions:
-      - type: "file_exists"
-        path: "CHANGELOG.md"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "## [2.1.0]"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "### Added"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "### Fixed"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "### Deprecated"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "BulkCreateAsync"
-      - type: "file_contains"
-        path: "CHANGELOG.md"
-        value: "## [Unreleased]"
-      - type: "exit_success"
-    rubric:
-      - "Created or updated CHANGELOG.md at the repository root"
-      - "Followed Keep a Changelog conventions with Added, Fixed, and Deprecated sections"
-      - "Placed the 2.1.0 release block with a date"
-      - "Kept an Unreleased block above the release entry"
-      - "Entries are concise and describe the change from the user perspective"
-    timeout: 120
 
   - name: "Decline to write XML code documentation"
     prompt: |
