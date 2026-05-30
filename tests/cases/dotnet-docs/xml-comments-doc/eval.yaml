@@ -1,0 +1,224 @@
+scenarios:
+  - name: "Add XML documentation to a public service class"
+    prompt: |
+      I have a public service class in my .NET library that has no XML documentation.
+      Please add complete XML documentation comments to all public members of this class.
+    setup:
+      files:
+        - path: "src/Payments/PaymentService.cs"
+          content: |
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+
+            namespace Payments;
+
+            public class PaymentService
+            {
+                private readonly IPaymentRepository _repository;
+
+                public PaymentService(IPaymentRepository repository)
+                {
+                    _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+                }
+
+                public async Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+                {
+                    return await _repository.FindAsync(id, cancellationToken);
+                }
+
+                public async Task<Payment> CreateAsync(CreatePaymentRequest request, CancellationToken cancellationToken = default)
+                {
+                    if (request is null)
+                        throw new ArgumentNullException(nameof(request));
+                    if (request.Amount <= 0)
+                        throw new ArgumentOutOfRangeException(nameof(request), "Amount must be positive.");
+
+                    var payment = new Payment(request.Amount, request.Currency);
+                    await _repository.AddAsync(payment, cancellationToken);
+                    return payment;
+                }
+
+                public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+                {
+                    var payment = await _repository.FindAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException($"Payment {id} not found.");
+                    await _repository.RemoveAsync(payment, cancellationToken);
+                }
+            }
+    assertions:
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<summary>"
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<param name=\"repository\">"
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<param name=\"id\">"
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<param name=\"request\">"
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<returns>"
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<exception cref="
+      - type: "file_contains"
+        path: "src/Payments/PaymentService.cs"
+        value: "<param name=\"cancellationToken\">"
+      - type: "exit_success"
+    rubric:
+      - "Added a <summary> to the class and every public member"
+      - "Documented all parameters including cancellationToken with <param> tags"
+      - "Documented return values with <returns>, noting the nullable Payment result for GetByIdAsync"
+      - "Listed all observable exceptions with <exception cref> tags"
+      - "Used imperative or declarative phrasing without repeating the member name"
+    timeout: 180
+
+  - name: "Apply inheritdoc to interface implementation"
+    prompt: |
+      I have an interface and a class that implements it. The interface has full XML documentation
+      but the class has none. Apply correct XML documentation to the class, using <inheritdoc>
+      where appropriate.
+    setup:
+      files:
+        - path: "src/Catalog/ICatalogService.cs"
+          content: |
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+
+            namespace Catalog;
+
+            /// <summary>
+            /// Defines operations for managing the product catalog.
+            /// </summary>
+            public interface ICatalogService
+            {
+                /// <summary>
+                /// Retrieves a product by its unique identifier.
+                /// </summary>
+                /// <param name="id">The unique identifier of the product.</param>
+                /// <param name="cancellationToken">A token to cancel the operation.</param>
+                /// <returns>
+                /// The <see cref="Product"/> with the specified <paramref name="id"/>,
+                /// or <see langword="null"/> if no product is found.
+                /// </returns>
+                Task<Product?> GetProductAsync(Guid id, CancellationToken cancellationToken = default);
+
+                /// <summary>
+                /// Adds a new product to the catalog.
+                /// </summary>
+                /// <param name="product">The product to add.</param>
+                /// <param name="cancellationToken">A token to cancel the operation.</param>
+                /// <exception cref="ArgumentNullException">Thrown when <paramref name="product"/> is <see langword="null"/>.</exception>
+                Task AddProductAsync(Product product, CancellationToken cancellationToken = default);
+            }
+        - path: "src/Catalog/CatalogService.cs"
+          content: |
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+
+            namespace Catalog;
+
+            public class CatalogService : ICatalogService
+            {
+                private readonly IProductRepository _repository;
+
+                public CatalogService(IProductRepository repository)
+                {
+                    _repository = repository;
+                }
+
+                public async Task<Product?> GetProductAsync(Guid id, CancellationToken cancellationToken = default)
+                    => await _repository.FindAsync(id, cancellationToken);
+
+                public async Task AddProductAsync(Product product, CancellationToken cancellationToken = default)
+                {
+                    if (product is null) throw new ArgumentNullException(nameof(product));
+                    await _repository.AddAsync(product, cancellationToken);
+                }
+            }
+    assertions:
+      - type: "file_contains"
+        path: "src/Catalog/CatalogService.cs"
+        value: "<summary>"
+      - type: "file_contains"
+        path: "src/Catalog/CatalogService.cs"
+        value: "<inheritdoc"
+      - type: "exit_success"
+    rubric:
+      - "Applied <inheritdoc/> to interface-implementing methods where behavior matches the interface contract"
+      - "Added a <summary> to the class itself"
+      - "Did not duplicate interface documentation verbatim without using <inheritdoc>"
+      - "Applied <inheritdoc cref=...> correctly if explicit interface resolution was needed"
+    timeout: 120
+
+  - name: "Add <remarks> and <example> to a complex utility method"
+    prompt: |
+      This extension method has non-obvious behavior regarding how it handles null values
+      and empty sequences. Please add full XML documentation including a <remarks> block
+      explaining the behavior and an <example> with a code snippet.
+    setup:
+      files:
+        - path: "src/Core/EnumerableExtensions.cs"
+          content: |
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            namespace Core;
+
+            public static class EnumerableExtensions
+            {
+                public static IEnumerable<T> OrEmpty<T>(this IEnumerable<T>? source)
+                    => source ?? Enumerable.Empty<T>();
+
+                public static IEnumerable<TResult> SelectNotNull<T, TResult>(
+                    this IEnumerable<T> source,
+                    Func<T, TResult?> selector)
+                    where TResult : class
+                    => source.Select(selector).Where(x => x is not null)!;
+            }
+    assertions:
+      - type: "file_contains"
+        path: "src/Core/EnumerableExtensions.cs"
+        value: "<summary>"
+      - type: "file_contains"
+        path: "src/Core/EnumerableExtensions.cs"
+        value: "<remarks>"
+      - type: "file_contains"
+        path: "src/Core/EnumerableExtensions.cs"
+        value: "<example>"
+      - type: "file_contains"
+        path: "src/Core/EnumerableExtensions.cs"
+        value: "<code>"
+      - type: "file_contains"
+        path: "src/Core/EnumerableExtensions.cs"
+        value: "<typeparam name="
+      - type: "exit_success"
+    rubric:
+      - "Added <summary> that clearly describes what each extension method does"
+      - "Added <remarks> explaining null-handling and empty-sequence behavior"
+      - "Added <example> with a <code> block showing realistic usage"
+      - "Documented generic type parameters with <typeparam>"
+      - "Documented the return value including the no-null-element guarantee for SelectNotNull"
+    timeout: 120
+
+  - name: "Decline to add XML docs to a non-.NET file"
+    prompt: |
+      Please add XML documentation comments to this Python module.
+    expect_activation: false
+    assertions:
+      - type: "output_matches"
+        pattern: "(Python|not a .NET|outside scope|XML doc|C#|not applicable)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized that XML documentation comments are a C# / .NET construct"
+      - "Did not attempt to apply C# XML doc syntax to Python code"
+      - "Explained that this skill applies to C# / .NET code only"
+    timeout: 60
+

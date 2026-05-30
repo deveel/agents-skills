@@ -1,0 +1,432 @@
+scenarios:
+  - name: "Create a root README.md for a multi-project .NET solution"
+    prompt: |
+      My .NET solution is called Deveel.Payments and contains three projects:
+      Deveel.Payments (the core library), Deveel.Payments.EntityFramework (EF Core integration),
+      and Deveel.Payments.AspNetCore (ASP.NET Core middleware). There is no README.md yet.
+      Please create a root README.md with an overview, quick start, installation instructions,
+      and links to documentation.
+    assertions:
+      - type: "file_exists"
+        path: "README.md"
+      - type: "file_contains"
+        path: "README.md"
+        value: "Deveel.Payments"
+      - type: "file_contains"
+        path: "README.md"
+        value: "dotnet add package"
+      - type: "file_not_contains"
+        path: "README.md"
+        value: "## Packages"
+      - type: "exit_success"
+    rubric:
+      - "Created a README.md at the repository root"
+      - "Included a clear one-line description and overview section"
+      - "Listed all three packages inline in the Installation section with dotnet add package commands"
+      - "Did not create a separate Packages section because there are only 3 packages"
+      - "Included a quick-start or getting-started code example"
+      - "Kept the root README concise without embedding full guides"
+    timeout: 180
+
+  - name: "Create a Packages section for a solution with more than 3 packages"
+    prompt: |
+      My .NET solution is called Deveel.Payments and contains five NuGet packages:
+      Deveel.Payments (core abstractions), Deveel.Payments.EntityFramework (EF Core persistence),
+      Deveel.Payments.AspNetCore (ASP.NET Core middleware), Deveel.Payments.Stripe (Stripe gateway),
+      and Deveel.Payments.Reporting (reporting extensions).
+      Please create a root README.md.
+    assertions:
+      - type: "file_exists"
+        path: "README.md"
+      - type: "file_contains"
+        path: "README.md"
+        value: "## Packages"
+      - type: "file_contains"
+        path: "README.md"
+        value: "img.shields.io/nuget/v/Deveel.Payments"
+      - type: "file_contains"
+        path: "README.md"
+        value: "www.nuget.org/packages/Deveel.Payments"
+      - type: "exit_success"
+    rubric:
+      - "Created a ## Packages section because the solution has more than 3 packages"
+      - "Placed the Packages section before the Installation section"
+      - "Each package has a NuGet version badge using the Shields.io format"
+      - "Each badge links to the correct www.nuget.org/packages/<PackageId> URL"
+      - "Each package has a one-sentence description in the table"
+      - "Used a Markdown table with Package, Version, and Description columns"
+    timeout: 180
+
+  - name: "Link architecture pages from the Packages section"
+    prompt: |
+      My solution has four packages: Deveel.Payments, Deveel.Payments.EntityFramework,
+      Deveel.Payments.AspNetCore, and Deveel.Payments.Stripe. An architecture section already
+      exists with a page for the EF Core integration at docs/architecture/ef-core.md.
+      Please create or update the root README.md with a Packages section.
+    setup:
+      files:
+        - path: "docs/architecture/ef-core.md"
+          content: |
+            # EF Core Integration Architecture
+
+            Description of the EF Core persistence design.
+    assertions:
+      - type: "file_exists"
+        path: "README.md"
+      - type: "file_contains"
+        path: "README.md"
+        value: "## Packages"
+      - type: "file_contains"
+        path: "README.md"
+        value: "img.shields.io/nuget/v/Deveel.Payments"
+      - type: "file_contains"
+        path: "README.md"
+        value: "architecture/ef-core.md"
+      - type: "exit_success"
+    rubric:
+      - "Created a ## Packages section with all four packages in a table"
+      - "Each package has a NuGet badge with the correct Shields.io URL"
+      - "The Deveel.Payments.EntityFramework row includes a link to docs/architecture/ef-core.md"
+      - "Packages without a matching architecture page do not include spurious architecture links"
+    timeout: 180
+
+
+    prompt: |
+      I have a .NET solution for an order management system. I want to create a docs/ folder
+      structure compatible with GitBook that includes a SUMMARY.md, a getting-started page,
+      and documentation for two topics: a simple authentication page, and a complex
+      multi-tenancy section that covers configuration, data isolation, and tenant resolution.
+      I do not need architecture or API docs at this stage.
+    assertions:
+      - type: "file_exists"
+        path: "docs/SUMMARY.md"
+      - type: "file_exists"
+        path: "docs/README.md"
+      - type: "file_exists"
+        path: "docs/getting-started.md"
+      - type: "file_exists"
+        path: "docs/authentication.md"
+      - type: "file_exists"
+        path: "docs/multi-tenancy/README.md"
+      - type: "file_contains"
+        path: "docs/SUMMARY.md"
+        value: "getting-started.md"
+      - type: "file_contains"
+        path: "docs/SUMMARY.md"
+        value: "multi-tenancy/README.md"
+      - type: "file_not_exists"
+        path: "docs/architecture"
+      - type: "file_not_exists"
+        path: "docs/api"
+      - type: "file_not_exists"
+        path: "docs/guides"
+      - type: "exit_success"
+    rubric:
+      - "Created a docs/ folder with SUMMARY.md as the GitBook table of contents"
+      - "Created getting-started.md as a flat page at the docs/ root"
+      - "Placed the simple authentication topic as a flat file at the docs/ root"
+      - "Created a multi-tenancy/ subfolder for the complex multi-page topic"
+      - "The multi-tenancy/ subfolder contains a README.md entry point"
+      - "Sub-pages inside multi-tenancy/ are linked from the subfolder README.md"
+      - "multi-tenancy/README.md is referenced in SUMMARY.md with sub-pages indented beneath it"
+      - "Did not generate architecture/ or api/ because the user did not request them"
+      - "Did not create a generic guides/ subfolder"
+      - "Used relative paths in SUMMARY.md and all internal links"
+    timeout: 300
+
+  - name: "Use a subfolder for a complex multi-page topic"
+    prompt: |
+      Please add documentation for the payments feature of our solution. It is a complex topic
+      with pages covering getting started with payments, handling webhooks, managing refunds,
+      and error handling. Place it in the docs/ folder.
+    setup:
+      files:
+        - path: "docs/README.md"
+          content: |
+            # Order Management System
+
+            Welcome to the documentation.
+    assertions:
+      - type: "file_exists"
+        path: "docs/payments/README.md"
+      - type: "file_exists"
+        path: "docs/payments/**"
+      - type: "file_contains"
+        path: "docs/payments/README.md"
+        value: "payments"
+      - type: "exit_success"
+    rubric:
+      - "Created a payments/ subfolder under docs/ because the topic spans multiple pages"
+      - "The payments/ subfolder contains a README.md that introduces the topic"
+      - "The README.md links to the individual sub-pages within the subfolder"
+      - "Sub-pages cover distinct subtopics rather than being merged into a single flat file"
+    timeout: 180
+
+  - name: "Ask before generating architecture docs"
+    prompt: |
+      Please create a docs/ folder for my .NET payments solution with a README and a
+      getting-started guide.
+    assertions:
+      - type: "file_exists"
+        path: "docs/README.md"
+      - type: "file_exists"
+        path: "docs/getting-started.md"
+      - type: "file_not_exists"
+        path: "docs/architecture"
+      - type: "file_not_exists"
+        path: "docs/api"
+      - type: "exit_success"
+    rubric:
+      - "Created the core docs structure without auto-generating architecture/ or api/"
+      - "Asked the user whether architecture documentation is needed before creating it"
+      - "Asked the user whether API documentation is needed before creating it"
+    timeout: 120
+
+  - name: "Place API docs at the end when requested"
+    prompt: |
+      Create a GitBook docs structure for my payments solution. Include a getting-started guide,
+      a how-to page about webhooks, and an API overview section for the Payments and Notifications libraries.
+      No architecture docs needed.
+    assertions:
+      - type: "file_exists"
+        path: "docs/SUMMARY.md"
+      - type: "file_exists"
+        path: "docs/api/overview.md"
+      - type: "file_not_exists"
+        path: "docs/architecture"
+      - type: "file_not_exists"
+        path: "docs/guides"
+      - type: "exit_success"
+    rubric:
+      - "Generated the api/ section because the user explicitly requested it"
+      - "Placed api/ as the last section in the docs folder and at the end of SUMMARY.md"
+      - "Did not generate architecture/ because the user did not request it"
+      - "Placed the webhooks how-to page at the docs/ root, not in a guides/ subfolder"
+    timeout: 240
+
+  - name: "Add an Architecture Decision Record for a technology choice"
+    prompt: |
+      Our team decided to use Kista as the entity lifecycle management framework instead of
+      hand-rolling our own services. Please create an ADR documenting this decision in
+      docs/architecture/decisions/.
+    assertions:
+      - type: "file_contains"
+        path: "docs/architecture/decisions/**"
+        value: "## Status"
+      - type: "file_contains"
+        path: "docs/architecture/decisions/**"
+        value: "## Context"
+      - type: "file_contains"
+        path: "docs/architecture/decisions/**"
+        value: "## Decision"
+      - type: "file_contains"
+        path: "docs/architecture/decisions/**"
+        value: "## Consequences"
+      - type: "file_contains"
+        path: "docs/architecture/decisions/**"
+        value: "Kista"
+      - type: "exit_success"
+    rubric:
+      - "Created an ADR file with sequential numbering under docs/architecture/decisions/"
+      - "Used the standard ADR format with Status, Context, Decision, and Consequences sections"
+      - "Status is set to Accepted"
+      - "Context explains what problem prompted the decision"
+      - "Decision section explains why Kista was chosen over alternatives"
+      - "Consequences section lists both positive and negative implications"
+    timeout: 180
+
+  - name: "Write a CHANGELOG following Keep a Changelog"
+    prompt: |
+      My library just released version 2.1.0. The changes include: a new PaymentService.BulkCreateAsync
+      method (Added), a fix for a race condition in the IdempotencyMiddleware (Fixed), and the
+      deprecation of PaymentService.CreateAsync in favor of BulkCreateAsync (Deprecated).
+      Please create or update the CHANGELOG.md accordingly.
+    assertions:
+      - type: "file_exists"
+        path: "CHANGELOG.md"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [2.1.0]"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Added"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Fixed"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Deprecated"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "BulkCreateAsync"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [Unreleased]"
+      - type: "exit_success"
+    rubric:
+      - "Created or updated CHANGELOG.md at the repository root"
+      - "Followed Keep a Changelog conventions with Added, Fixed, and Deprecated sections"
+      - "Placed the 2.1.0 release block with a date"
+      - "Kept an Unreleased block above the release entry"
+      - "Entries are concise and describe the change from the user perspective"
+    timeout: 120
+
+  - name: "Decline to write XML code documentation"
+    prompt: |
+      Please add XML documentation comments to the methods in my PaymentService class.
+    expect_activation: false
+    assertions:
+      - type: "output_matches"
+        pattern: "(xml-comments-doc|XML doc|different skill|code comments|not this skill|outside scope)"
+      - type: "exit_success"
+    rubric:
+      - "Recognized that the request is about XML doc comments in C# code, not Markdown solution docs"
+      - "Did not attempt to write XML documentation comments"
+      - "Redirected to the xml-comments-doc skill or explained the scope boundary"
+    timeout: 60
+
+  - name: "Update documentation when an existing feature changes"
+    prompt: |
+      The webhook signature validation in our payments library has changed. It previously used
+      HMAC-SHA256 with a raw secret, but now requires the secret to be Base64-encoded before
+      hashing. Please update the relevant documentation and the changelog.
+    setup:
+      files:
+        - path: "docs/payments/webhooks.md"
+          content: |
+            # Webhooks
+
+            ## Signature Validation
+
+            To validate a webhook signature, compute HMAC-SHA256 over the raw request body
+            using the raw secret string provided in your dashboard.
+
+            ```csharp
+            var key = Encoding.UTF8.GetBytes(secret);
+            var signature = HMACSHA256.HashData(key, body);
+            ```
+        - path: "CHANGELOG.md"
+          content: |
+            # Changelog
+
+            ## [Unreleased]
+
+            ## [2.0.0] - 2026-01-15
+            ### Added
+            - Initial webhook support
+    assertions:
+      - type: "file_contains"
+        path: "docs/payments/webhooks.md"
+        value: "Base64"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Changed"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [Unreleased]"
+      - type: "exit_success"
+    rubric:
+      - "Updated the affected guide page to reflect the new Base64-encoded secret requirement"
+      - "Corrected the code example in the webhooks documentation"
+      - "Added a ### Changed entry under [Unreleased] in CHANGELOG.md"
+      - "Did not remove the existing [Unreleased] block or alter released version entries"
+    timeout: 180
+
+  - name: "Add documentation for a new feature"
+    prompt: |
+      We have added a new idempotency feature to the payments library that allows clients to
+      retry requests safely using an Idempotency-Key header. Please document this new feature
+      and update the changelog.
+    setup:
+      files:
+        - path: "docs/README.md"
+          content: |
+            # Payments Library
+
+            Welcome to the Payments Library documentation.
+        - path: "docs/SUMMARY.md"
+          content: |
+            # Summary
+
+            * [Introduction](README.md)
+            * [Getting Started](getting-started.md)
+        - path: "CHANGELOG.md"
+          content: |
+            # Changelog
+
+            ## [Unreleased]
+
+            ## [2.0.0] - 2026-01-15
+            ### Added
+            - Webhook support
+    assertions:
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Added"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [Unreleased]"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "dempoten"
+      - type: "file_contains"
+        path: "docs/SUMMARY.md"
+        value: "dempoten"
+      - type: "exit_success"
+    rubric:
+      - "Created a new documentation page or section describing the idempotency feature"
+      - "Applied the single-page vs. subfolder rule to decide where to place the new content"
+      - "Updated SUMMARY.md to include the new page so it is reachable in navigation"
+      - "Added a ### Added entry under [Unreleased] in CHANGELOG.md describing the new feature"
+    timeout: 180
+
+  - name: "Remove documentation for a deprecated feature"
+    prompt: |
+      The legacy synchronous payment API (PaymentClient.Submit) has been removed in this
+      release. Please remove or archive its documentation and update the changelog.
+    setup:
+      files:
+        - path: "docs/legacy-submit.md"
+          content: |
+            # Legacy Submit API
+
+            Use `PaymentClient.Submit` to submit a payment synchronously.
+        - path: "docs/SUMMARY.md"
+          content: |
+            # Summary
+
+            * [Introduction](README.md)
+            * [Getting Started](getting-started.md)
+            * [Legacy Submit API](legacy-submit.md)
+        - path: "CHANGELOG.md"
+          content: |
+            # Changelog
+
+            ## [Unreleased]
+
+            ## [2.0.0] - 2026-01-15
+            ### Added
+            - Async payment API
+    assertions:
+      - type: "file_not_contains"
+        path: "docs/SUMMARY.md"
+        value: "legacy-submit.md"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "### Removed"
+      - type: "file_contains"
+        path: "CHANGELOG.md"
+        value: "## [Unreleased]"
+      - type: "exit_success"
+    rubric:
+      - "Removed the legacy-submit.md page or clearly marked it as removed"
+      - "Removed the legacy-submit.md entry from SUMMARY.md so the page is no longer navigable"
+      - "Added a ### Removed entry under [Unreleased] in CHANGELOG.md"
+      - "Did not alter released version entries in CHANGELOG.md"
+    timeout: 120
+
+
+
+
+
+

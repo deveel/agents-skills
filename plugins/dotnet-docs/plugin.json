@@ -1,0 +1,13 @@
+{
+  "name": "dotnet-docs",
+  "description": ".NET agent skills for writing XML documentation comments and solution-level Markdown documentation",
+  "version": "1.0.0",
+  "author": {
+    "name": "Antonello Provenzano"
+  },
+  "license": "MIT",
+  "keywords": ["dotnet", "csharp", "documentation", "xml-comments", "markdown", "gitbook", "docfx"],
+
+  "skills": ["skills/"]
+}
+
